@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventário Mágico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+  </head>
+  <body class="bg-purple-900 text-white min-h-screen">
+    <!-- Notification container -->
+    <div
+      id="notification"
+      class="fixed top-4 right-4 transition-opacity duration-500 opacity-0 hidden"
+    >
+      <div class="bg-purple-600 text-white px-6 py-4 rounded-lg shadow-lg">
+        <span id="notificationText"></span>
+      </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+      <h1 class="text-4xl font-bold text-center mb-8">
+        🧙‍♂️ Inventário Mágico 🪄
+      </h1>
+
+      <div class="max-w-md mx-auto bg-purple-800 rounded-lg shadow-lg p-6">
+        <div class="mb-6">
+          <input
+            type="text"
+            id="itemInput"
+            placeholder="Nome do item mágico"
+            class="w-full p-2 rounded bg-purple-700 text-white placeholder-purple-300 border border-purple-600"
+          />
+        </div>
+
+        <div class="flex gap-4 mb-6">
+          <button
+            onclick="handleAction('adicionar')"
+            class="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded"
+          >
+            Adicionar
+          </button>
+        </div>
+
+        <div
+          id="inventory"
+          class="mt-4 p-4 bg-purple-700 rounded-lg min-h-[100px]"
+        ></div>
+      </div>
+    </div>
+
+    <script>
+      function showNotification(message) {
+        const notification = document.getElementById("notification");
+        const notificationText = document.getElementById("notificationText");
+
+        notificationText.textContent = message;
+        notification.classList.remove("hidden");
+        setTimeout(() => notification.classList.remove("opacity-0"), 100);
+
+        setTimeout(() => {
+          notification.classList.add("opacity-0");
+          setTimeout(() => {
+            notification.classList.add("hidden");
+          }, 500);
+        }, 5000);
+      }
+
+      async function fetchInventory() {
+        const response = await fetch("/api/items");
+        const data = await response.json();
+        return data;
+      }
+
+      async function handleAction(action, itemId = "") {
+        const itemInput = document.getElementById("itemInput");
+        const inventoryDiv = document.getElementById("inventory");
+        let response;
+
+        try {
+          if (action === "adicionar") {
+            response = await fetch("/api/items", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                description: itemInput.value,
+              }),
+            });
+            itemInput.value = "";
+          } else if (action === "remover") {
+            response = await fetch(`/api/items/${itemId}`, {
+              method: "DELETE",
+            });
+          }
+
+          if (action !== "listar") {
+            const data = await response.json();
+            showNotification(data.message);
+          }
+
+          // Update inventory display
+          const listData = await fetchInventory();
+          const inventoryHtml = Array.isArray(listData)
+            ? listData
+                .map(
+                  (item) => `
+                  <div class="mb-2 flex items-center justify-between bg-purple-600 p-2 rounded">
+                    <span>${item.description}</span>
+                    <button onclick="handleAction('remover', '${item.id}')" 
+                      class="text-red-400 hover:text-red-600 transition-colors">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>`
+                )
+                .join("")
+            : `<div class="italic">${listData}</div>`;
+
+          inventoryDiv.innerHTML = inventoryHtml;
+        } catch (error) {
+          showNotification("Erro ao processar a requisição");
+        }
+      }
+
+      // Initial load of inventory
+      window.onload = () => handleAction("listar");
+    </script>
+  </body>
+</html>
