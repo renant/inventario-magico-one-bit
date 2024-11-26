@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
 import uuid
+import os
 
 app = Flask(__name__)
 
@@ -50,4 +51,5 @@ def remove_item(item_id):
     return jsonify({"message": result})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, port=port)
